@@ -7,7 +7,7 @@ from flask_cors import CORS
 from config import Config
 from middleware import require_api_key
 from utils import decode_base64_pdf, extract_text_from_pdf, validate_pdf_content
-from services import ResumeScorer
+from services import ResumeScorer, ResumeChatService
 
 # Configure logging
 logging.basicConfig(
@@ -33,6 +33,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize ResumeScorer: {e}")
     scorer = None
+
+# Initialize Chat Service
+try:
+    chat_service = ResumeChatService(google_api_key=Config.GOOGLE_API_KEY)
+    logger.info("Chat service initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize chat service: {e}")
+    chat_service = None
 
 
 @app.route('/health', methods=['GET'])
@@ -304,6 +312,79 @@ def analyze_resume():
         return jsonify({
             'error': 'Internal server error',
             'message': 'An unexpected error occurred. Please try again later.'
+        }), 500
+
+
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
+def chat():
+    """
+    Chat with AI about resume analysis using LangChain with memory
+    
+    Request Body:
+        {
+            "message": "User's question",
+            "session_id": "unique-session-id",
+            "analysis": { ... resume analysis data ... }
+        }
+    
+    Response:
+        {
+            "response": "AI assistant's response"
+        }
+    """
+    try:
+        # Handle OPTIONS for CORS (before auth check)
+        if request.method == 'OPTIONS':
+            return '', 204
+        
+        # Check API key for POST requests
+        api_key = request.headers.get('X-API-Key')
+        if not api_key or api_key != Config.API_KEY:
+            return jsonify({'error': 'Unauthorized'}), 401
+            
+        if chat_service is None:
+            logger.error("Chat service not initialized")
+            return jsonify({
+                'error': 'Service unavailable',
+                'message': 'Chat service is not available'
+            }), 503
+        
+        if not request.is_json:
+            return jsonify({
+                'error': 'Invalid request',
+                'message': 'Content-Type must be application/json'
+            }), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if 'message' not in data or 'session_id' not in data or 'analysis' not in data:
+            return jsonify({
+                'error': 'Invalid request',
+                'message': 'Missing required fields: message, session_id, analysis'
+            }), 400
+        
+        message = data['message']
+        session_id = data['session_id']
+        analysis = data['analysis']
+        
+        logger.info(f"Processing chat message for session {session_id}: {message[:50]}...")
+        logger.info(f"Analysis data keys: {list(analysis.keys())}")
+        
+        # Get response from chat service
+        response = chat_service.chat(session_id, message, analysis)
+        
+        logger.info(f"Chat response generated: {response[:100]}...")
+        
+        return jsonify({
+            'response': response
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {e}", exc_info=True)
+        return jsonify({
+            'error': 'Internal server error',
+            'message': 'An error occurred processing your message'
         }), 500
 
 

@@ -22,13 +22,14 @@ import {
 } from 'lucide-react'
 import { JobMatchBadge } from './job-match-badge'
 import { ATSScoreCard } from './ats-score-card'
+import { ResumeChat } from './resume-chat'
 
 interface ResultsTabsProps {
   analysis: ResumeAnalysis
   onReset: () => void
 }
 
-type TabType = 'overview' | 'suggestions' | 'breakdown' | 'detailed' | 'ats' | 'match'
+type TabType = 'overview' | 'suggestions' | 'breakdown' | 'detailed' | 'ats' | 'match' | 'chat'
 
 export function ResultsTabs({ analysis, onReset }: ResultsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
@@ -49,6 +50,7 @@ export function ResultsTabs({ analysis, onReset }: ResultsTabsProps) {
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
     { id: 'suggestions' as const, label: 'Suggestions', icon: Lightbulb },
+    { id: 'chat' as const, label: 'AI Chat', icon: Sparkles },
     { id: 'breakdown' as const, label: 'Breakdown', icon: Target },
     { id: 'detailed' as const, label: 'Insights', icon: TrendingUp },
     { id: 'ats' as const, label: 'ATS', icon: Shield },
@@ -104,6 +106,7 @@ export function ResultsTabs({ analysis, onReset }: ResultsTabsProps) {
       <div>
         {activeTab === 'overview' && <OverviewTab analysis={analysis} />}
         {activeTab === 'suggestions' && <SuggestionsTab analysis={analysis} />}
+        {activeTab === 'chat' && <ResumeChat analysis={analysis} sessionId={`session-${Date.now()}`} />}
         {activeTab === 'breakdown' && <BreakdownTab analysis={analysis} />}
         {activeTab === 'detailed' && <DetailedTab analysis={analysis} />}
         {activeTab === 'ats' && (
