@@ -319,14 +319,14 @@ def analyze_resume():
 def chat():
     """
     Chat with AI about resume analysis using LangChain with memory
-    
+
     Request Body:
         {
             "message": "User's question",
             "session_id": "unique-session-id",
             "analysis": { ... resume analysis data ... }
         }
-    
+
     Response:
         {
             "response": "AI assistant's response"
@@ -336,56 +336,132 @@ def chat():
         # Handle OPTIONS for CORS (before auth check)
         if request.method == 'OPTIONS':
             return '', 204
-        
+
         # Check API key for POST requests
         api_key = request.headers.get('X-API-Key')
         if not api_key or api_key != Config.API_KEY:
             return jsonify({'error': 'Unauthorized'}), 401
-            
+
         if chat_service is None:
             logger.error("Chat service not initialized")
             return jsonify({
                 'error': 'Service unavailable',
                 'message': 'Chat service is not available'
             }), 503
-        
+
         if not request.is_json:
             return jsonify({
                 'error': 'Invalid request',
                 'message': 'Content-Type must be application/json'
             }), 400
-        
+
         data = request.get_json()
-        
+
         # Validate required fields
         if 'message' not in data or 'session_id' not in data or 'analysis' not in data:
             return jsonify({
                 'error': 'Invalid request',
                 'message': 'Missing required fields: message, session_id, analysis'
             }), 400
-        
+
         message = data['message']
         session_id = data['session_id']
         analysis = data['analysis']
-        
+
         logger.info(f"Processing chat message for session {session_id}: {message[:50]}...")
         logger.info(f"Analysis data keys: {list(analysis.keys())}")
-        
+
         # Get response from chat service
         response = chat_service.chat(session_id, message, analysis)
-        
+
         logger.info(f"Chat response generated: {response[:100]}...")
-        
+
         return jsonify({
             'response': response
         }), 200
-        
+
     except Exception as e:
         logger.error(f"Chat endpoint error: {e}", exc_info=True)
         return jsonify({
             'error': 'Internal server error',
             'message': 'An error occurred processing your message'
         }), 500
+
+
+@app.route('/api/chat/stream', methods=['POST', 'OPTIONS'])
+def chat_stream():
+    """
+    Stream chat responses with AI about resume analysis using LangChain with memory
+
+    Request Body:
+        {
+            "message": "User's question",
+            "session_id": "unique-session-id",
+            "analysis": { ... resume analysis data ... }
+        }
+
+    Response: Server-Sent Events stream with chat tokens
+    """
+    try:
+        # Handle OPTIONS for CORS (before auth check)
+        if request.method == 'OPTIONS':
+            return '', 204
+
+        # Check API key for POST requests
+        api_key = request.headers.get('X-API-Key')
+        if not api_key or api_key != Config.API_KEY:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        if chat_service is None:
+            logger.error("Chat service not initialized")
+            def error_stream():
+                yield f"data: {json.dumps({'error': 'Service unavailable'})}\n\n"
+            return Response(stream_with_context(error_stream()), mimetype='text/event-stream')
+
+        if not request.is_json:
+            def error_stream():
+                yield f"data: {json.dumps({'error': 'Invalid request'})}\n\n"
+            return Response(stream_with_context(error_stream()), mimetype='text/event-stream')
+
+        data = request.get_json()
+
+        # Validate required fields
+        if 'message' not in data or 'session_id' not in data or 'analysis' not in data:
+            def error_stream():
+                yield f"data: {json.dumps({'error': 'Missing required fields'})}\n\n"
+            return Response(stream_with_context(error_stream()), mimetype='text/event-stream')
+
+        message = data['message']
+        session_id = data['session_id']
+        analysis = data['analysis']
+
+        logger.info(f"Streaming chat message for session {session_id}: {message[:50]}...")
+
+        def generate_chat_stream():
+            try:
+                for token in chat_service.chat_stream(session_id, message, analysis):
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+                # Send completion signal
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                logger.error(f"Streaming error: {e}", exc_info=True)
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return Response(
+            stream_with_context(generate_chat_stream()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Connection': 'keep-alive'
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Chat stream endpoint error: {e}", exc_info=True)
+        def error_stream():
+            yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
+        return Response(stream_with_context(error_stream()), mimetype='text/event-stream')
 
 
 @app.route('/', methods=['GET'])

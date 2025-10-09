@@ -2,13 +2,29 @@
 LangChain-powered chat service with conversation memory for resume analysis
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Iterator
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
+from langchain.callbacks.base import BaseCallbackHandler
 
 logger = logging.getLogger(__name__)
+
+
+class StreamingCallbackHandler(BaseCallbackHandler):
+    """Callback handler for streaming LLM responses"""
+
+    def __init__(self):
+        self.tokens = []
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        """Called when a new token is generated"""
+        self.tokens.append(token)
+
+    def get_tokens(self) -> list:
+        """Get all accumulated tokens"""
+        return self.tokens
 
 class ResumeChatService:
     """Chat service with memory for discussing resume analysis"""
@@ -18,12 +34,13 @@ class ResumeChatService:
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-lite",
             google_api_key=google_api_key,
-            temperature=0.7
+            temperature=0.7,
+            streaming=True  # Enable streaming
         )
-        
+
         # Store conversation memories by session ID
         self.sessions: Dict[str, ConversationBufferMemory] = {}
-        
+
         # Custom prompt template for resume discussion
         self.prompt_template = PromptTemplate(
             input_variables=["history", "input", "resume_context"],
@@ -126,6 +143,71 @@ Please provide a helpful, specific answer based on the resume analysis above. Be
             logger.error(f"Chat error for session {session_id}: {e}", exc_info=True)
             return "I apologize, but I encountered an error processing your question. Please try rephrasing or ask something else about your resume analysis."
     
+    def chat_stream(self, session_id: str, message: str, analysis_data: Dict[str, Any]) -> Iterator[str]:
+        """Stream chat responses token by token"""
+        try:
+            # Get or create session
+            session = self.get_or_create_session(session_id, analysis_data)
+            chain = session['chain']
+            analysis = session['analysis']
+
+            # Build context from analysis
+            context_parts = [
+                f"Overall Score: {analysis.get('overall_score', 'N/A')}/100",
+                f"ATS Score: {analysis.get('ats_score', 'N/A')}/100",
+            ]
+
+            if analysis.get('job_match_score'):
+                context_parts.append(f"Job Match Score: {analysis['job_match_score']}%")
+
+            # Add section scores
+            if 'section_scores' in analysis:
+                context_parts.append("\\nSection Scores:")
+                for section, score in analysis['section_scores'].items():
+                    context_parts.append(f"  - {section.title()}: {score}/100")
+
+            # Add strengths
+            if analysis.get('strengths'):
+                context_parts.append(f"\\nStrengths ({len(analysis['strengths'])}):")
+                for strength in analysis['strengths'][:3]:  # Top 3
+                    context_parts.append(f"  - {strength}")
+
+            # Add weaknesses
+            if analysis.get('weaknesses'):
+                context_parts.append(f"\\nWeaknesses ({len(analysis['weaknesses'])}):")
+                for weakness in analysis['weaknesses'][:3]:  # Top 3
+                    context_parts.append(f"  - {weakness}")
+
+            # Add recommendations
+            if analysis.get('recommendations'):
+                context_parts.append(f"\\nRecommendations ({len(analysis['recommendations'])}):")
+                for rec in analysis['recommendations'][:3]:  # Top 3
+                    context_parts.append(f"  - {rec}")
+
+            resume_context = "\\n".join(context_parts)
+
+            # Create enhanced prompt with context
+            enhanced_message = f"""Resume Analysis Summary:
+{resume_context}
+
+User Question: {message}
+
+Please provide a helpful, specific answer based on the resume analysis above. Be conversational and actionable."""
+
+            # Stream response from chain
+            for chunk in chain.stream({"input": enhanced_message}):
+                # Extract the response text from the chunk
+                if isinstance(chunk, dict) and 'response' in chunk:
+                    yield chunk['response']
+                elif isinstance(chunk, str):
+                    yield chunk
+
+            logger.info(f"Streaming chat response completed for session {session_id}")
+
+        except Exception as e:
+            logger.error(f"Chat streaming error for session {session_id}: {e}", exc_info=True)
+            yield "I apologize, but I encountered an error processing your question. Please try rephrasing or ask something else about your resume analysis."
+
     def clear_session(self, session_id: str):
         """Clear a chat session"""
         if session_id in self.sessions:
