@@ -1,17 +1,111 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# Virtual Environments
 venv/
 env/
 ENV/
 .venv
-*.egg-info/
+.virtualenv
+
+# Environment Variables
 .env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-*.pdf
-uploads/
+
+# Testing
 .pytest_cache/
-htmlcov/
 .coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.cache
+nosetests.xml
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Flask
+instance/
+.webassets-cache
+
+# Uploads
+uploads/
+*.pdf
+*.doc
+*.docx
+
+# Logs
+*.log
+*.log.*
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js (for frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Next.js (frontend)
+.next/
+out/
+next-env.d.ts
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Misc
+.DS_Store
+*.pem
+*.key
+*.cert
+.vercel
+.turbo
+
+# Claude Code
+.claude/settings.local.json
+
+
+*node_modules

@@ -5,7 +5,8 @@
       "Bash(python:*)",
       "Bash(timeout:*)",
       "Bash(pip install:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,41 +1,88 @@
-# Resume Insight Scoring API
+# Resume Insight - AI-Powered Resume Analysis
 
-A powerful Flask-based REST API that analyzes PDF resumes using Google's Generative AI (Gemini) and LangChain. Upload a resume, get detailed scoring, strengths, weaknesses, and actionable recommendations.
+A full-stack application that analyzes PDF resumes using Google's Generative AI (Gemini) and LangChain. Features a modern Next.js frontend with real-time progress updates and a Flask REST API backend.
 
 ## Features
 
+### Backend API
 - PDF resume upload and text extraction
 - AI-powered resume analysis using Google Gemini via LangChain
+- **Real-time progress updates** using Server-Sent Events (SSE)
 - Comprehensive scoring across multiple categories:
   - Skills Match
   - Experience Depth
   - Clarity & Structure
   - Keyword Optimization
+- **ATS (Applicant Tracking System) compatibility scoring**
+- **Job Match Score** when job description provided
+- **Missing Keywords Detection** for job description matching
 - Detailed feedback with strengths, weaknesses, and recommendations
-- Optional job description matching for tailored scoring
 - API key authentication
 - Docker support for easy deployment
 - Error handling and validation
+
+### Frontend
+- Modern Next.js 14 (App Router) with TypeScript
+- Tailwind CSS + shadcn/ui components
+- Real-time loading screen with progress updates
+- Tabbed results interface:
+  - Overview Dashboard
+  - Detailed Analysis
+  - ATS Compatibility Check
+  - Job Match Analysis
+- Fully responsive design (mobile + desktop)
+- Dark mode support
 
 ## Project Structure
 
 ```
 job-match-api/
-├── app.py                 # Main Flask application
-├── config.py              # Configuration settings
-├── requirements.txt       # Python dependencies
-├── Dockerfile            # Docker configuration
-├── .env.example          # Environment variables template
-├── middleware/
+├── app.py                      # Main Flask application with SSE support
+├── config.py                   # Configuration settings
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Docker configuration
+├── .env.example               # Environment variables template
+├── .gitignore                 # Git ignore rules
+│
+├── middleware/                # Backend middleware
 │   ├── __init__.py
-│   └── auth.py           # API key authentication
-├── services/
+│   └── auth.py               # API key authentication
+│
+├── services/                  # Core business logic
 │   ├── __init__.py
-│   └── resume_scorer.py  # LangChain + Google AI scoring logic
-├── utils/
+│   ├── resume_scorer.py      # LangChain + Google AI scoring
+│   └── ats_analyzer.py       # ATS compatibility checker
+│
+├── utils/                     # Utility functions
 │   ├── __init__.py
-│   └── pdf_extractor.py  # PDF text extraction utilities
-└── test_api.py          # Testing script
+│   └── pdf_extractor.py      # PDF text extraction
+│
+├── tests/                     # Test scripts
+│   ├── test_api.py           # API integration tests
+│   ├── test_sse_endpoint.py  # SSE streaming tests
+│   ├── test_simple.py        # Basic functionality tests
+│   ├── test_new_features.py  # ATS & Job Match tests
+│   ├── test_scorer_directly.py
+│   └── test_frontend_simulation.py
+│
+└── frontend/                  # Next.js frontend application
+    ├── app/
+    │   ├── page.tsx          # Main application page
+    │   ├── layout.tsx        # Root layout
+    │   └── globals.css       # Global styles
+    ├── components/
+    │   ├── loading-screen.tsx    # Real-time progress display
+    │   ├── results-tabs.tsx      # Tabbed results interface
+    │   ├── resume-upload.tsx     # File upload component
+    │   ├── ats-score-card.tsx    # ATS compatibility display
+    │   ├── job-match-badge.tsx   # Job match score display
+    │   └── ui/                   # shadcn/ui components
+    ├── lib/
+    │   ├── api.ts            # API client with SSE support
+    │   └── utils.ts          # Utility functions
+    ├── package.json
+    ├── tailwind.config.ts
+    └── tsconfig.json
 ```
 
 ## Prerequisites
@@ -115,20 +162,73 @@ Debug mode: True
  * Running on http://0.0.0.0:5000
 ```
 
-## Testing the API
+## Running the Frontend
 
-### Option 1: Using the Test Script
-
-I've included a `test_api.py` script for easy testing:
+### 1. Navigate to Frontend Directory
 
 ```bash
-python test_api.py path/to/your/resume.pdf
+cd frontend
 ```
 
-This will:
+### 2. Install Dependencies
+
+```bash
+npm install
+# or
+pnpm install
+```
+
+### 3. Configure Environment
+
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_KEY=1234
+```
+
+### 4. Run Development Server
+
+```bash
+npm run dev
+# or
+pnpm dev
+```
+
+The frontend will start at `http://localhost:3000`
+
+### 5. Build for Production
+
+```bash
+npm run build
+npm start
+```
+
+## Testing the API
+
+### Option 1: Using the Test Scripts
+
+Navigate to the `tests/` directory and run:
+
+**Basic API Test:**
+```bash
+python tests/test_api.py path/to/your/resume.pdf
+```
+
+**Test SSE Streaming:**
+```bash
+python tests/test_sse_endpoint.py
+```
+
+**Test New Features (ATS & Job Match):**
+```bash
+python tests/test_new_features.py
+```
+
+These scripts will:
 1. Convert your PDF to base64
 2. Send it to the API
-3. Display the analysis results
+3. Display the analysis results with real-time progress
 
 ### Option 2: Using cURL
 
@@ -208,7 +308,7 @@ Health check endpoint.
 API information and available endpoints.
 
 ### POST /analyze-resume
-Analyze a resume and get detailed scoring.
+Analyze a resume and get detailed scoring (non-streaming).
 
 **Headers:**
 - `Content-Type: application/json`
@@ -232,6 +332,20 @@ Analyze a resume and get detailed scoring.
     "clarity": 85,
     "keywords": 88
   },
+  "ats_score": 92,
+  "ats_issues": [
+    "Consider using standard section headers"
+  ],
+  "ats_recommendations": [
+    "Use standard fonts like Arial or Calibri",
+    "Avoid tables and complex layouts"
+  ],
+  "job_match_score": 85,
+  "missing_keywords": [
+    "Docker",
+    "Kubernetes",
+    "CI/CD"
+  ],
   "strengths": [
     "Strong technical skills in Python and cloud technologies",
     "Clear project outcomes with quantified results"
@@ -252,6 +366,35 @@ Analyze a resume and get detailed scoring.
     "has_job_description": true
   }
 }
+```
+
+### POST /analyze-resume-stream
+Analyze a resume with real-time progress updates via Server-Sent Events (SSE).
+
+**Headers:**
+- `Content-Type: application/json`
+- `X-API-Key: your-api-key`
+
+**Request Body:** Same as `/analyze-resume`
+
+**Response:** Server-Sent Events stream
+
+**Progress Event:**
+```
+event: progress
+data: {"stage": "ai_analysis", "progress": 70, "message": "Evaluating skills and experience..."}
+```
+
+**Result Event:**
+```
+event: result
+data: {<full analysis JSON>}
+```
+
+**Error Event:**
+```
+event: error
+data: {"error": "Analysis failed", "message": "Error details"}
 ```
 
 **Error Responses:**
