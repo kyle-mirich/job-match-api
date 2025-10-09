@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from config import Config; print(''Config loaded successfully''); print(f''GOOGLE_API_KEY: {Config.GOOGLE_API_KEY[:20] if Config.GOOGLE_API_KEY else \"\"NOT SET\"\"}...''); print(f''API_KEY: {Config.API_KEY[:20]}...''); print(f''MODEL_NAME: {Config.MODEL_NAME}'')\")",
+      "Bash(python:*)",
+      "Bash(timeout:*)",
+      "Bash(pip install:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
