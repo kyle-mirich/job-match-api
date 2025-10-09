@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCircle, Send, Loader2, Bot, User } from 'lucide-react'
 import { ResumeAnalysis } from '@/lib/api'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -32,13 +34,10 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
+  // Scroll to bottom helper
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -54,21 +53,16 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
     setInput('')
     setLoading(true)
 
-    // Add a placeholder message for the assistant
-    const assistantMessageId = Date.now()
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isStreaming: true,
-      },
-    ])
+    // Scroll to bottom when user sends a message
+    setTimeout(scrollToBottom, 100)
+
+    // Don't add placeholder - we'll show loading indicator separately
 
     try {
-      console.log('Sending streaming chat message:', userInput)
-      const response = await fetch('http://localhost:5000/api/chat/stream', {
+      console.log('Sending chat message:', userInput)
+
+      // Fetch the full response (not streaming from backend)
+      const response = await fetch('http://localhost:5000/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,63 +81,54 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
         throw new Error('Failed to get response')
       }
 
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
+      const data = await response.json()
+      const fullResponse = data.response
 
-      if (!reader) {
-        throw new Error('No reader available')
-      }
+      // Add the assistant message now
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          isStreaming: true,
+        },
+      ])
 
-      let accumulatedContent = ''
+      // Simulate streaming by displaying characters gradually
+      let currentIndex = 0
+      const charsPerInterval = 10 // More chars per update for faster speed
 
-      while (true) {
-        const { done, value } = await reader.read()
+      const streamInterval = setInterval(() => {
+        if (currentIndex < fullResponse.length) {
+          const nextChunk = fullResponse.slice(0, currentIndex + charsPerInterval)
+          currentIndex += charsPerInterval
 
-        if (done) {
-          console.log('Stream complete')
-          break
-        }
-
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            try {
-              const parsed = JSON.parse(data)
-
-              if (parsed.token) {
-                accumulatedContent += parsed.token
-                // Update the last message with accumulated content
-                setMessages((prev) => {
-                  const newMessages = [...prev]
-                  const lastMessage = newMessages[newMessages.length - 1]
-                  if (lastMessage.role === 'assistant') {
-                    lastMessage.content = accumulatedContent
-                    lastMessage.isStreaming = true
-                  }
-                  return newMessages
-                })
-              } else if (parsed.done) {
-                // Mark streaming as complete
-                setMessages((prev) => {
-                  const newMessages = [...prev]
-                  const lastMessage = newMessages[newMessages.length - 1]
-                  if (lastMessage.role === 'assistant') {
-                    lastMessage.isStreaming = false
-                  }
-                  return newMessages
-                })
-              } else if (parsed.error) {
-                throw new Error(parsed.error)
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e)
+          setMessages((prev) => {
+            const newMessages = [...prev]
+            const lastMessage = newMessages[newMessages.length - 1]
+            if (lastMessage.role === 'assistant') {
+              lastMessage.content = nextChunk
+              lastMessage.isStreaming = true
             }
-          }
+            return newMessages
+          })
+        } else {
+          // Finished streaming
+          clearInterval(streamInterval)
+          setMessages((prev) => {
+            const newMessages = [...prev]
+            const lastMessage = newMessages[newMessages.length - 1]
+            if (lastMessage.role === 'assistant') {
+              lastMessage.content = fullResponse
+              lastMessage.isStreaming = false
+            }
+            return newMessages
+          })
+          setLoading(false)
         }
-      }
+      }, 30) // Update every 30ms for blazing fast streaming (~333 chars/sec)
+
     } catch (error) {
       console.error('Chat error:', error)
       const errorMessage: Message = {
@@ -156,7 +141,6 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
         const filtered = prev.filter((msg) => !msg.isStreaming)
         return [...filtered, errorMessage]
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -209,12 +193,41 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
                   : 'bg-muted rounded-bl-sm'
               }`}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {message.content}
+              <div className="text-sm leading-relaxed break-words prose prose-sm dark:prose-invert max-w-none">
+                {message.role === 'user' ? (
+                  <p className="whitespace-pre-wrap m-0">{message.content}</p>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="mb-2 pl-4 list-disc">{children}</ul>,
+                      ol: ({ children }) => <ol className="mb-2 pl-4 list-decimal">{children}</ol>,
+                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      code: ({ children }) => (
+                        <code className="bg-primary/10 px-1 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
+                      ),
+                      pre: ({ children }) => (
+                        <pre className="bg-primary/10 p-2 rounded my-2 overflow-x-auto">
+                          {children}
+                        </pre>
+                      ),
+                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
                 {message.isStreaming && (
                   <span className="inline-block w-1.5 h-4 ml-1 bg-current animate-pulse" />
                 )}
-              </p>
+              </div>
               <span
                 className={`text-[10px] mt-1.5 block ${
                   message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
@@ -233,13 +246,17 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
             )}
           </div>
         ))}
-        {loading && messages[messages.length - 1]?.role !== 'assistant' && (
+        {loading && (messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') && (
           <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Bot className="w-5 h-5 text-primary" />
             </div>
-            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
-              <Loader2 className="w-4 h-4 animate-spin" />
+            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           </div>
         )}

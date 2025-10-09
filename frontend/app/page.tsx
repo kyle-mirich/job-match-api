@@ -6,6 +6,15 @@ import { LoadingScreen } from '@/components/loading-screen'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { analyzeResumeWithProgress, ResumeAnalysis, ProgressUpdate } from '@/lib/api'
 import {
   Sparkles,
@@ -19,6 +28,7 @@ import {
   ChevronDown,
   ChevronLeft,
   X,
+  Briefcase,
 } from 'lucide-react'
 
 export default function Home() {
@@ -29,7 +39,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [showUpload, setShowUpload] = useState(false)
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null)
-  const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
+  const [jobDescriptionDialogOpen, setJobDescriptionDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +81,7 @@ export default function Home() {
       )
       setAnalysis(result)
       setShowUpload(false)
-      setJobDescriptionExpanded(false)
+      setJobDescriptionDialogOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze resume')
       console.error('Analysis error:', err)
@@ -85,7 +95,7 @@ export default function Home() {
     setSelectedFile(null)
     setJobDescription('')
     setError(null)
-    setJobDescriptionExpanded(false)
+    setJobDescriptionDialogOpen(false)
   }
 
   const handleReset = () => {
@@ -96,7 +106,7 @@ export default function Home() {
 
   const handleGetStarted = () => {
     setShowUpload(true)
-    setJobDescriptionExpanded(false)
+    setJobDescriptionDialogOpen(false)
   }
 
   // Loading State
@@ -138,7 +148,7 @@ export default function Home() {
                 size="sm"
                 onClick={() => {
                   setShowUpload(false)
-                  setJobDescriptionExpanded(false)
+                  setJobDescriptionDialogOpen(false)
                 }}
                 className="gap-2 group"
               >
@@ -187,34 +197,60 @@ export default function Home() {
             </div>
 
             <div className="space-y-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setJobDescriptionExpanded((prev) => !prev)}
-                className="w-full justify-between"
-                disabled={loading}
-              >
-                <span className="text-sm">
-                  {jobDescription ? 'Edit Job Description' : 'Add Job Description (Optional)'}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${jobDescriptionExpanded ? 'rotate-180' : ''}`}
-                />
-              </Button>
-              {jobDescription && !jobDescriptionExpanded && (
+              <Dialog open={jobDescriptionDialogOpen} onOpenChange={setJobDescriptionDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    disabled={loading}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    {jobDescription ? 'Edit Job Description' : 'Add Job Description (Optional)'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[525px]">
+                  <DialogHeader>
+                    <DialogTitle>Job Description</DialogTitle>
+                    <DialogDescription>
+                      Paste the job description to get tailored resume analysis and matching insights.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <Textarea
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      placeholder="Paste the full job description here..."
+                      className="min-h-[200px] resize-none"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setJobDescription('')
+                        setJobDescriptionDialogOpen(false)
+                      }}
+                      disabled={loading}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setJobDescriptionDialogOpen(false)}
+                      disabled={loading}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              {jobDescription && (
                 <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground animate-in fade-in duration-300">
-                  Job description saved. Click to edit.
+                  ✓ Job description added ({jobDescription.split(' ').length} words)
                 </div>
-              )}
-              {jobDescriptionExpanded && (
-                <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the job description for tailored analysis..."
-                  className="h-32 w-full resize-none rounded-md border bg-background p-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring animate-in slide-in-from-top duration-300"
-                  disabled={loading}
-                />
               )}
             </div>
 
