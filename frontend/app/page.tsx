@@ -286,7 +286,7 @@ export default function Home() {
               <ChevronRight className="w-5 h-5" />
             </Button>
             <p className="text-sm text-muted-foreground mt-4">
-              No signup required â€¢ Results in 30 seconds â€¢ 100% private
+              No signup required &bull; Results in 30 seconds &bull; 100% private
             </p>
           </div>
 
