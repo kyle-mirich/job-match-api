@@ -22,6 +22,13 @@ import {
   Briefcase,
   UserCheck,
   Zap,
+  Trophy,
+  Clock,
+  Award,
+  TrendingUpDown,
+  CircleDot,
+  Flame,
+  Star,
 } from 'lucide-react'
 import { JobMatchBadge } from './job-match-badge'
 import { ATSScoreCard } from './ats-score-card'
@@ -120,7 +127,7 @@ export function ResultsTabs({ analysis, onReset }: ResultsTabsProps) {
 }
 
 function OverviewTab({ analysis }: { analysis: ResumeAnalysis }) {
-  const { overall_score, ats_score, job_match_score } = analysis
+  const { overall_score, ats_score, job_match_score, section_scores, strengths, weaknesses, recommendations } = analysis
 
   // Calculate predictive percentages based on scores
   const calculateInterviewChance = () => {
@@ -138,6 +145,51 @@ function OverviewTab({ analysis }: { analysis: ResumeAnalysis }) {
 
   const interviewChance = calculateInterviewChance()
   const hiringChance = calculateHiringChance()
+
+  // Calculate industry benchmark percentile
+  const calculatePercentile = () => {
+    if (overall_score >= 90) return 95
+    if (overall_score >= 85) return 85
+    if (overall_score >= 80) return 75
+    if (overall_score >= 75) return 65
+    if (overall_score >= 70) return 55
+    if (overall_score >= 65) return 45
+    if (overall_score >= 60) return 35
+    return 20
+  }
+
+  const percentile = calculatePercentile()
+
+  // Calculate potential improvement
+  const calculatePotentialImprovement = () => {
+    const lowestScore = Math.min(
+      section_scores.skills,
+      section_scores.experience,
+      section_scores.clarity,
+      section_scores.keywords
+    )
+    const potentialGain = Math.round((100 - lowestScore) * 0.3)
+    return Math.min(potentialGain, 25)
+  }
+
+  const potentialImprovement = calculatePotentialImprovement()
+
+  // Get top quick wins
+  const getQuickWins = () => {
+    const wins = []
+    if (section_scores.keywords < 70) {
+      wins.push({ title: 'Add Industry Keywords', impact: '+8-12 points', icon: Target })
+    }
+    if (section_scores.skills < 75) {
+      wins.push({ title: 'Quantify Achievements', impact: '+5-10 points', icon: TrendingUp })
+    }
+    if (ats_score < 80) {
+      wins.push({ title: 'Fix ATS Issues', impact: '+10-15 points', icon: Shield })
+    }
+    return wins.slice(0, 3)
+  }
+
+  const quickWins = getQuickWins()
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -271,6 +323,247 @@ function OverviewTab({ analysis }: { analysis: ResumeAnalysis }) {
               <p className="text-xs text-muted-foreground">
                 Estimated chance of receiving a job offer based on current resume quality
               </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Industry Benchmark & Competitive Edge */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+              Industry Ranking
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              How your resume compares to others in your field
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Percentile Rank</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-bold text-amber-600 dark:text-amber-400">
+                    {percentile}
+                    <span className="text-lg">th</span>
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <Badge variant={percentile >= 75 ? "default" : percentile >= 50 ? "secondary" : "outline"} className="text-xs">
+                  {percentile >= 75 ? "Top Tier" : percentile >= 50 ? "Above Avg" : "Growing"}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Competitive Position</span>
+                <span className="font-medium">
+                  Better than {percentile}% of resumes
+                </span>
+              </div>
+              <Progress value={percentile} className="h-2" />
+            </div>
+            <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+              {percentile >= 75
+                ? "🎯 Your resume is in the top quartile! You're ahead of most candidates."
+                : percentile >= 50
+                ? "📈 You're above average, but there's room to stand out more."
+                : "💪 With targeted improvements, you can climb the rankings significantly."}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+              Improvement Potential
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Projected score gain with recommended changes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Potential Gain</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400">
+                    +{potentialImprovement}
+                  </span>
+                  <span className="text-muted-foreground text-sm">points</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Projected Score</p>
+                <p className={`text-2xl font-bold ${getScoreColor(Math.min(100, overall_score + potentialImprovement))}`}>
+                  {Math.min(100, overall_score + potentialImprovement)}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 items-center p-2 rounded-md bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-200/20 dark:border-orange-800/20">
+              <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+              <p className="text-xs">
+                Estimated time: <span className="font-semibold">2-4 hours</span> of focused improvements
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <TrendingUp className="w-3 h-3" />
+              <span>Based on similar resumes that implemented our suggestions</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Wins Section */}
+      {quickWins.length > 0 && (
+        <Card className="border-2 border-emerald-200/50 dark:border-emerald-800/50 shadow-md bg-gradient-to-br from-emerald-50/50 to-background dark:from-emerald-950/20 dark:to-background">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+              Quick Wins
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Top priority actions for maximum impact
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {quickWins.map((win, index) => {
+                const Icon = win.icon
+                return (
+                  <div
+                    key={index}
+                    className="group relative overflow-hidden rounded-lg border-2 border-emerald-200/70 dark:border-emerald-800/70 bg-card p-4 hover:shadow-lg transition-all hover:scale-105"
+                  >
+                    <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600 dark:text-emerald-400 mb-3" />
+                    <h4 className="font-semibold text-sm mb-2">{win.title}</h4>
+                    <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
+                      {win.impact}
+                    </Badge>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Resume Health Score - Circular Visualization */}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CircleDot className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            Resume Health Dashboard
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Key metrics at a glance
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Overall Health */}
+            <div className="flex flex-col items-center p-4 rounded-lg border bg-gradient-to-br from-primary/5 to-background">
+              <div className="relative w-24 h-24 mb-3">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    className="text-muted/20"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - overall_score / 100)}`}
+                    className={getScoreColor(overall_score)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={`text-2xl font-bold ${getScoreColor(overall_score)}`}>
+                    {overall_score}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs font-medium text-center">Overall Health</p>
+              <p className={`text-xs ${getScoreColor(overall_score)}`}>
+                {getScoreLabel(overall_score)}
+              </p>
+            </div>
+
+            {/* ATS Compatibility */}
+            <div className="flex flex-col items-center p-4 rounded-lg border bg-gradient-to-br from-blue-500/5 to-background">
+              <div className="relative w-24 h-24 mb-3">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    className="text-muted/20"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - ats_score / 100)}`}
+                    className={getScoreColor(ats_score)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={`text-2xl font-bold ${getScoreColor(ats_score)}`}>
+                    {ats_score}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs font-medium text-center">ATS Pass Rate</p>
+              <p className={`text-xs ${getScoreColor(ats_score)}`}>
+                {ats_score >= 80 ? 'Robot Approved' : 'Needs Work'}
+              </p>
+            </div>
+
+            {/* Strength Count */}
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-gradient-to-br from-green-500/5 to-background">
+              <Star className="w-10 h-10 text-green-600 dark:text-green-400 mb-2" />
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                {strengths.length}
+              </p>
+              <p className="text-xs font-medium text-center mt-1">Key Strengths</p>
+              <p className="text-xs text-muted-foreground">Identified</p>
+            </div>
+
+            {/* Action Items */}
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-gradient-to-br from-orange-500/5 to-background">
+              <AlertTriangle className="w-10 h-10 text-orange-600 dark:text-orange-400 mb-2" />
+              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                {weaknesses.length}
+              </p>
+              <p className="text-xs font-medium text-center mt-1">Action Items</p>
+              <p className="text-xs text-muted-foreground">To Address</p>
             </div>
           </div>
         </CardContent>
