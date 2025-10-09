@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ResultsTabs } from '@/components/results-tabs'
 import { LoadingScreen } from '@/components/loading-screen'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { analyzeResumeWithProgress, ResumeAnalysis, ProgressUpdate } from '@/lib/api'
 import {
@@ -113,7 +113,7 @@ export default function Home() {
   // Results State
   if (analysis) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 animate-in fade-in duration-500">
         <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
           <ResultsTabs analysis={analysis} onReset={handleReset} />
         </div>
@@ -125,12 +125,12 @@ export default function Home() {
   if (showUpload) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center px-4 py-8">
-        <Card className="w-full max-w-md border-2 shadow-lg">
+        <Card className="w-full max-w-md border-2 shadow-xl animate-in slide-in-from-bottom duration-500">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h1 className="text-xl font-semibold">Upload Resume</h1>
-                <p className="text-sm text-muted-foreground">Get AI-powered feedback in 30 seconds.</p>
+                <h1 className="text-xl font-bold">Upload Resume</h1>
+                <p className="text-sm text-muted-foreground">Get AI-powered feedback in 30 seconds</p>
               </div>
               <Button
                 type="button"
@@ -140,10 +140,10 @@ export default function Home() {
                   setShowUpload(false)
                   setJobDescriptionExpanded(false)
                 }}
-                className="gap-2"
+                className="gap-2 group"
               >
-                <ChevronLeft className="h-4 w-4" />
-                Back
+                <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="hidden sm:inline">Back</span>
               </Button>
             </div>
 
@@ -159,16 +159,16 @@ export default function Home() {
               <Button
                 type="button"
                 onClick={handleFileButtonClick}
-                className="w-full gap-2"
+                className="w-full gap-2 h-12 text-base hover:scale-105 transition-transform"
                 disabled={loading}
               >
-                <Upload className="h-4 w-4" />
+                <Upload className="h-5 w-5" />
                 {selectedFile ? 'Replace Resume' : 'Upload Resume'}
               </Button>
-              <p className="text-center text-xs text-muted-foreground">PDF files only</p>
+              <p className="text-center text-xs text-muted-foreground">PDF files only, max 10MB</p>
               {selectedFile && (
-                <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
-                  <div className="min-w-0">
+                <div className="flex items-center justify-between rounded-lg border-2 bg-muted/40 p-3 animate-in slide-in-from-top duration-300">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{selectedFile.name}</p>
                     <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024).toFixed(0)} KB</p>
                   </div>
@@ -178,6 +178,7 @@ export default function Home() {
                     size="icon"
                     onClick={handleRemoveFile}
                     disabled={loading}
+                    className="hover:bg-destructive/10 hover:text-destructive"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -195,31 +196,31 @@ export default function Home() {
                 disabled={loading}
               >
                 <span className="text-sm">
-                  {jobDescription ? 'View / Edit Job Description' : 'Paste Job Description (optional)'}
+                  {jobDescription ? 'Edit Job Description' : 'Add Job Description (Optional)'}
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${jobDescriptionExpanded ? 'rotate-180' : ''}`}
                 />
               </Button>
               {jobDescription && !jobDescriptionExpanded && (
-                <div className="rounded-md border border-dashed border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                  Job description saved. Click to view or edit.
+                <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground animate-in fade-in duration-300">
+                  Job description saved. Click to edit.
                 </div>
               )}
               {jobDescriptionExpanded && (
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste job description for tailored analysis..."
-                  className="h-32 w-full resize-none rounded-md border bg-background p-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="Paste the job description for tailored analysis..."
+                  className="h-32 w-full resize-none rounded-md border bg-background p-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring animate-in slide-in-from-top duration-300"
                   disabled={loading}
                 />
               )}
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-                <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 animate-in slide-in-from-top duration-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 text-destructive flex-shrink-0" />
                 <p className="text-xs text-destructive">{error}</p>
               </div>
             )}
@@ -229,10 +230,11 @@ export default function Home() {
                 type="button"
                 onClick={handleAnalyze}
                 disabled={!selectedFile || loading}
-                className="w-full gap-2"
+                className="w-full gap-2 h-12 text-base font-semibold hover:scale-105 transition-transform shadow-lg"
               >
+                <Sparkles className="h-5 w-5" />
                 Analyze Resume
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               </Button>
               <Button
                 type="button"
@@ -249,6 +251,7 @@ export default function Home() {
       </div>
     )
   }
+
   // Landing Page (Hero)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -256,25 +259,26 @@ export default function Home() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary" />
+                <Brain className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Resume Insight</h1>
+                <h1 className="text-lg font-bold">Resume Insight AI</h1>
                 <p className="text-xs text-muted-foreground hidden sm:block">
-                  AI-Powered Resume Analysis
+                  by Kyle Mirich
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                Portfolio Demo
-              </Badge>
-              <Button variant="outline" size="sm" asChild className="gap-2">
-                <a href="https://github.com/kyle-mirich/job-match-api/tree/main" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm" asChild>
+                <a href="https://kyle-mirich.vercel.app" target="_blank" rel="noopener noreferrer">
+                  Portfolio
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href="https://github.com/kyle-mirich/job-match-api" target="_blank" rel="noopener noreferrer">
                   <Github className="w-4 h-4" />
-                  <span className="hidden sm:inline">GitHub</span>
                 </a>
               </Button>
             </div>
@@ -286,102 +290,148 @@ export default function Home() {
       <main className="container mx-auto px-4 py-12 md:py-20">
         <div className="max-w-6xl mx-auto">
           {/* Hero Content */}
-          <div className="text-center mb-12 md:mb-16">
-            <Badge className="mb-6 text-sm px-4 py-2" variant="outline">
-              Powered by Google Gemini AI & LangChain
-            </Badge>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-              Get Your Resume
+          <div className="text-center mb-16 md:mb-20">
+            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border bg-muted/50">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Portfolio Project by Kyle Mirich</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              AI-Powered Resume Analysis
               <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-                Interview-Ready
-              </span>
+              <span className="text-primary">Built with Modern Tech</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
-              Upload your resume and receive instant AI-powered feedback with detailed scoring, ATS
-              compatibility check, and actionable recommendations to land more interviews
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+              A full-stack application demonstrating AI integration, real-time processing, and modern web development.
+              Upload a resume to see Google Gemini AI analyze it in real-time.
             </p>
-            <Button onClick={handleGetStarted} size="lg" className="h-14 px-8 text-lg gap-2">
-              <Sparkles className="w-5 h-5" />
-              Analyze Your Resume Free
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-            <p className="text-sm text-muted-foreground mt-4">
-              No signup required &bull; Results in 30 seconds &bull; 100% private
-            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button 
+                onClick={handleGetStarted} 
+                size="lg" 
+                className="gap-2"
+              >
+                Try the Demo
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline"
+                size="lg" 
+                asChild
+              >
+                <a href="https://github.com/kyle-mirich/job-match-api" target="_blank" rel="noopener noreferrer">
+                  <Github className="w-4 h-4 mr-2" />
+                  View Source Code
+                </a>
+              </Button>
+            </div>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid gap-6 md:grid-cols-3 mb-12">
-            <Card className="border-2 hover:border-primary/50 transition-all">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Target className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Job Match Score</h3>
-                <p className="text-muted-foreground">
-                  See exactly how well your resume aligns with job descriptions and discover missing
-                  keywords
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-all">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Shield className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">ATS Compatibility</h3>
-                <p className="text-muted-foreground">
-                  Check if your resume passes Applicant Tracking Systems used by 75% of employers
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-all">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Brain className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">AI-Powered Insights</h3>
-                <p className="text-muted-foreground">
-                  Get detailed analysis with strengths, weaknesses, and personalized recommendations
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Social Proof */}
-          <Card className="bg-muted/50 border-2">
-            <CardContent className="p-8">
-              <div className="grid md:grid-cols-3 gap-6 text-center">
+          {/* Tech Stack */}
+          <Card className="border mb-12">
+            <CardHeader>
+              <CardTitle>Tech Stack</CardTitle>
+              <CardDescription>Technologies used in this project</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">95%</div>
-                  <p className="text-sm text-muted-foreground">Average Score Improvement</p>
+                  <h4 className="font-semibold mb-2">Frontend</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Next.js 14</li>
+                    <li>• React 18</li>
+                    <li>• TypeScript</li>
+                    <li>• Tailwind CSS</li>
+                    <li>• shadcn/ui</li>
+                  </ul>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">30sec</div>
-                  <p className="text-sm text-muted-foreground">Analysis Time</p>
+                  <h4 className="font-semibold mb-2">Backend</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Python Flask</li>
+                    <li>• RESTful API</li>
+                    <li>• PyPDF2</li>
+                    <li>• CORS</li>
+                  </ul>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">100%</div>
-                  <p className="text-sm text-muted-foreground">Private & Secure</p>
+                  <h4 className="font-semibold mb-2">AI/ML</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Google Gemini AI</li>
+                    <li>• LangChain</li>
+                    <li>• NLP Processing</li>
+                    <li>• Real-time Analysis</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Features</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• PDF Parsing</li>
+                    <li>• ATS Scoring</li>
+                    <li>• Job Matching</li>
+                    <li>• AI Suggestions</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Key Features */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Card className="border">
+              <CardContent className="p-6">
+                <Target className="w-10 h-10 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Smart Analysis</h3>
+                <p className="text-sm text-muted-foreground">
+                  AI-powered resume scoring with detailed breakdowns across multiple categories
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border">
+              <CardContent className="p-6">
+                <Shield className="w-10 h-10 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">ATS Optimization</h3>
+                <p className="text-sm text-muted-foreground">
+                  Check compatibility with Applicant Tracking Systems used by employers
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border">
+              <CardContent className="p-6">
+                <Brain className="w-10 h-10 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Actionable Insights</h3>
+                <p className="text-sm text-muted-foreground">
+                  Get specific recommendations to improve your resume's effectiveness
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-8 mt-12">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Built with Flask, Google Gemini AI, LangChain, Next.js, and shadcn/ui
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Portfolio Project - Demonstrating Full-Stack Development & AI Integration
-          </p>
+      <footer className="border-t py-8 mt-16">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <p className="text-sm font-medium">Kyle Mirich</p>
+              <p className="text-xs text-muted-foreground">Full-Stack Developer</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" asChild>
+                <a href="https://kyle-mirich.vercel.app" target="_blank" rel="noopener noreferrer">
+                  Portfolio
+                </a>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <a href="https://github.com/kyle-mirich/job-match-api" target="_blank" rel="noopener noreferrer">
+                  <Github className="w-4 h-4 mr-2" />
+                  GitHub
+                </a>
+              </Button>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
