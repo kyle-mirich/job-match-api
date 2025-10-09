@@ -61,7 +61,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Badge variant="secondary">Portfolio Demo</Badge>
               <Button variant="outline" size="sm" asChild>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/kyle-mirich/job-match-api/tree/main" target="_blank" rel="noopener noreferrer">
                   <Github className="w-4 h-4 mr-2" />
                   GitHub
                 </a>

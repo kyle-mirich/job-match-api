@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from 'react'
 import { ResumeUpload } from '@/components/resume-upload'
@@ -98,7 +98,7 @@ export default function Home() {
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between max-w-5xl mx-auto">
               <Button variant="ghost" onClick={() => setShowUpload(false)} size="sm" className="gap-2">
-                ← Back
+                â† Back
               </Button>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">Step 1 of 2</Badge>
@@ -251,7 +251,7 @@ export default function Home() {
                 Portfolio Demo
               </Badge>
               <Button variant="outline" size="sm" asChild className="gap-2">
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/kyle-mirich/job-match-api/tree/main" target="_blank" rel="noopener noreferrer">
                   <Github className="w-4 h-4" />
                   <span className="hidden sm:inline">GitHub</span>
                 </a>
@@ -286,7 +286,7 @@ export default function Home() {
               <ChevronRight className="w-5 h-5" />
             </Button>
             <p className="text-sm text-muted-foreground mt-4">
-              No signup required • Results in 30 seconds • 100% private
+              No signup required â€¢ Results in 30 seconds â€¢ 100% private
             </p>
           </div>
 
