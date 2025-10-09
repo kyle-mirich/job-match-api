@@ -1,7 +1,6 @@
 ﻿"use client"
 
-import { useState } from 'react'
-import { ResumeUpload } from '@/components/resume-upload'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { ResultsTabs } from '@/components/results-tabs'
 import { LoadingScreen } from '@/components/loading-screen'
 import { Button } from '@/components/ui/button'
@@ -15,8 +14,11 @@ import {
   Shield,
   Brain,
   ChevronRight,
-  CheckCircle,
   AlertCircle,
+  Upload,
+  ChevronDown,
+  ChevronLeft,
+  X,
 } from 'lucide-react'
 
 export default function Home() {
@@ -27,6 +29,29 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [showUpload, setShowUpload] = useState(false)
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null)
+  const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file')
+    } else {
+      setSelectedFile(file)
+    }
+
+    event.target.value = ''
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+  }
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click()
+  }
 
   const handleAnalyze = async () => {
     if (!selectedFile) return
@@ -46,6 +71,7 @@ export default function Home() {
       )
       setAnalysis(result)
       setShowUpload(false)
+      setJobDescriptionExpanded(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze resume')
       console.error('Analysis error:', err)
@@ -55,16 +81,22 @@ export default function Home() {
     }
   }
 
-  const handleReset = () => {
+  const clearUploadForm = () => {
     setSelectedFile(null)
     setJobDescription('')
-    setAnalysis(null)
     setError(null)
+    setJobDescriptionExpanded(false)
+  }
+
+  const handleReset = () => {
+    clearUploadForm()
+    setAnalysis(null)
     setShowUpload(false)
   }
 
   const handleGetStarted = () => {
     setShowUpload(true)
+    setJobDescriptionExpanded(false)
   }
 
   // Loading State
@@ -92,142 +124,131 @@ export default function Home() {
   // Upload State
   if (showUpload) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-        {/* Compact Header */}
-        <header className="border-b bg-background/95 backdrop-blur">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between max-w-5xl mx-auto">
-              <Button variant="ghost" onClick={() => setShowUpload(false)} size="sm" className="gap-2">
-                â† Back
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-md border-2 shadow-lg">
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h1 className="text-xl font-semibold">Upload Resume</h1>
+                <p className="text-sm text-muted-foreground">Get AI-powered feedback in 30 seconds.</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowUpload(false)
+                  setJobDescriptionExpanded(false)
+                }}
+                className="gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
               </Button>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">Step 1 of 2</Badge>
-              </div>
             </div>
-          </div>
-        </header>
 
-        {/* Main Content - Centered */}
-        <div className="flex-1 flex items-center justify-center px-4 py-6">
-          <div className="w-full max-w-5xl">
-            <div className="grid lg:grid-cols-[1fr,300px] gap-6">
-              {/* Left: Upload Form */}
-              <div className="space-y-4">
-                <div className="text-center lg:text-left">
-                  <h1 className="text-2xl md:text-3xl font-bold mb-2">Upload Your Resume</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Get AI-powered insights in 30 seconds
-                  </p>
+            <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileInputChange}
+                className="hidden"
+                disabled={loading}
+              />
+              <Button
+                type="button"
+                onClick={handleFileButtonClick}
+                className="w-full gap-2"
+                disabled={loading}
+              >
+                <Upload className="h-4 w-4" />
+                {selectedFile ? 'Replace Resume' : 'Upload Resume'}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">PDF files only</p>
+              {selectedFile && (
+                <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemoveFile}
+                    disabled={loading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-
-                <Card className="border-2">
-                  <CardContent className="p-4 md:p-6 space-y-4">
-                    {/* Resume Upload */}
-                    <div>
-                      <label className="block text-xs font-semibold mb-2">
-                        Resume (PDF) *
-                      </label>
-                      <ResumeUpload
-                        onFileSelect={setSelectedFile}
-                        selectedFile={selectedFile}
-                        onClear={() => setSelectedFile(null)}
-                        disabled={loading}
-                      />
-                    </div>
-
-                    {/* Job Description */}
-                    <div>
-                      <label className="block text-xs font-semibold mb-2">
-                        Job Description (Optional)
-                      </label>
-                      <textarea
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
-                        placeholder="Paste job description for tailored analysis..."
-                        className="w-full h-[120px] p-3 text-sm rounded-lg border-2 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    {/* Error Message */}
-                    {error && (
-                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-destructive">{error}</p>
-                      </div>
-                    )}
-
-                    {/* Action Button */}
-                    <Button
-                      onClick={handleAnalyze}
-                      disabled={!selectedFile || loading}
-                      className="w-full h-11 gap-2"
-                      size="lg"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Analyze Resume
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right: Features */}
-              <div className="hidden lg:block space-y-3">
-                <h3 className="text-sm font-semibold mb-3">What You'll Get:</h3>
-                <Card className="bg-muted/50">
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Target className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-xs">Job Match Score</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          See alignment with job requirements
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Shield className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-xs">ATS Check</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Ensure tracking system compatibility
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Brain className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-xs">AI Insights</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Get actionable recommendations
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              )}
             </div>
-          </div>
-        </div>
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setJobDescriptionExpanded((prev) => !prev)}
+                className="w-full justify-between"
+                disabled={loading}
+              >
+                <span className="text-sm">
+                  {jobDescription ? 'View / Edit Job Description' : 'Paste Job Description (optional)'}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${jobDescriptionExpanded ? 'rotate-180' : ''}`}
+                />
+              </Button>
+              {jobDescription && !jobDescriptionExpanded && (
+                <div className="rounded-md border border-dashed border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  Job description saved. Click to view or edit.
+                </div>
+              )}
+              {jobDescriptionExpanded && (
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste job description for tailored analysis..."
+                  className="h-32 w-full resize-none rounded-md border bg-background p-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={loading}
+                />
+              )}
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                <p className="text-xs text-destructive">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={!selectedFile || loading}
+                className="w-full gap-2"
+              >
+                Analyze Resume
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={clearUploadForm}
+                disabled={loading}
+                className="w-full text-sm"
+              >
+                Clear selections
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
-
   // Landing Page (Hero)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
