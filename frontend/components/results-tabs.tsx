@@ -24,8 +24,6 @@ import {
   Zap,
   Trophy,
   Clock,
-  Award,
-  TrendingUpDown,
   CircleDot,
   Flame,
   Star,
