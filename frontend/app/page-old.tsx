@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from 'react'
 import { ResumeUpload } from '@/components/resume-upload'
@@ -243,7 +243,7 @@ export default function Home() {
                   </p>
                 </div>
                 <Button variant="outline" asChild>
-                  <a href="http://localhost:5000" target="_blank" rel="noopener noreferrer">
+                  <a href="https://job-match-api-998y.onrender.com" target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     API Docs
                   </a>

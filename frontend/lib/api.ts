@@ -1,4 +1,4 @@
-export interface SectionScores {
+﻿export interface SectionScores {
   skills: number
   experience: number
   clarity: number
@@ -34,7 +34,7 @@ export interface ProgressUpdate {
   message: string
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://job-match-api-998y.onrender.com'
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '1234'
 
 export async function analyzeResume(
