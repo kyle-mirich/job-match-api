@@ -101,7 +101,7 @@ export default function Home() {
   const handleReset = () => {
     clearUploadForm()
     setAnalysis(null)
-    setShowUpload(false)
+    setShowUpload(true) // Go back to upload page, not landing page
   }
 
   const handleGetStarted = () => {
@@ -124,9 +124,7 @@ export default function Home() {
   if (analysis) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 animate-in fade-in duration-500">
-        <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
-          <ResultsTabs analysis={analysis} onReset={handleReset} />
-        </div>
+        <ResultsTabs analysis={analysis} onReset={handleReset} />
       </div>
     )
   }

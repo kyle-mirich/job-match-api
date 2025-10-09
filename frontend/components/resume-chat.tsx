@@ -153,24 +153,7 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen max-h-[calc(100vh-2rem)] bg-background">
-      {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-lg">AI Resume Assistant</h2>
-              <p className="text-xs text-muted-foreground">
-                Powered by LangChain • Always here to help
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-[calc(100vh-10rem)] bg-background">
       {/* Messages Container */}
       <div
         ref={messagesContainerRef}

@@ -78,34 +78,34 @@ export function LoadingScreen({ stage = 'analyze', progress: externalProgress, m
   }, [currentStage, steps.length])
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <Card className="w-full max-w-2xl border-2 shadow-2xl my-8 scale-90 md:scale-100">
-        <CardContent className="p-6 md:p-8">
-          <div className="flex justify-center mb-6">
+    <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md lg:max-w-xl border-2 shadow-2xl my-4">
+        <CardContent className="p-4 sm:p-5 lg:p-6">
+          <div className="flex justify-center mb-3 sm:mb-4">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-              <div className="relative bg-gradient-to-br from-primary/20 to-primary/10 p-6 rounded-full shadow-lg">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative bg-gradient-to-br from-primary/20 to-primary/10 p-3 sm:p-4 rounded-full shadow-lg">
+                <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary animate-spin" />
               </div>
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-center mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-1 sm:mb-2">
             Analyzing Your Resume
           </h2>
-          <p className="text-center text-muted-foreground mb-6 text-sm">
+          <p className="text-center text-muted-foreground mb-3 sm:mb-4 text-sm">
             {message}
           </p>
 
-          <div className="mb-6">
-            <div className="flex justify-between text-sm mb-2">
+          <div className="mb-3 sm:mb-4">
+            <div className="flex justify-between text-xs sm:text-sm mb-1.5 sm:mb-2">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-semibold">{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-3" />
+            <Progress value={progress} className="h-2" />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {steps.map((step, index) => {
               const Icon = step.icon
               const isActive = index === currentStep
@@ -114,14 +114,14 @@ export function LoadingScreen({ stage = 'analyze', progress: externalProgress, m
               return (
                 <div
                   key={index}
-                  className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-300 ${
+                  className={`flex items-start gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg transition-all duration-300 ${
                     isActive
-                      ? 'bg-primary/10 border-2 border-primary/20 scale-105 shadow-lg'
+                      ? 'bg-primary/10 border-2 border-primary/20 shadow-lg'
                       : 'bg-muted/30 border-2 border-transparent'
                   }`}
                 >
                   <div
-                    className={`flex-shrink-0 p-2 rounded-full transition-all duration-300 ${
+                    className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-300 ${
                       isComplete
                         ? 'bg-green-100 dark:bg-green-950 shadow-md'
                         : isActive
@@ -130,10 +130,10 @@ export function LoadingScreen({ stage = 'analyze', progress: externalProgress, m
                     }`}
                   >
                     {isComplete ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                     ) : (
                       <Icon
-                        className={`w-5 h-5 ${
+                        className={`w-4 h-4 ${
                           isActive ? 'text-primary animate-pulse' : 'text-muted-foreground'
                         }`}
                       />
@@ -141,25 +141,25 @@ export function LoadingScreen({ stage = 'analyze', progress: externalProgress, m
                   </div>
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`font-semibold text-sm transition-colors ${
+                      className={`font-semibold text-xs sm:text-sm transition-colors ${
                         isActive ? 'text-primary' : ''
                       }`}
                     >
                       {step.label}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate hidden sm:block">
                       {step.description}
                     </p>
                   </div>
                   {isActive && (
-                    <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+                    <Loader2 className="w-3.5 h-3.5 text-primary animate-spin flex-shrink-0" />
                   )}
                 </div>
               )
             })}
           </div>
 
-          <div className="mt-6 p-3 bg-muted/50 rounded-lg border">
+          <div className="mt-3 sm:mt-4 p-2 sm:p-2.5 bg-muted/50 rounded-lg border">
             <p className="text-xs text-center text-muted-foreground">
               💡 <span className="font-semibold">Did you know?</span> 75% of resumes are rejected by ATS before reaching a human recruiter
             </p>
