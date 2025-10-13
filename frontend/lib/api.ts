@@ -86,6 +86,74 @@ export async function analyzeResumeWithProgress(
   }
 
   return new Promise((resolve, reject) => {
+    let settled = false
+    const controller = new AbortController()
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null
+
+    const clearFallbackTimer = () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer)
+        fallbackTimer = null
+      }
+    }
+
+    const finalizeResolve = (result: ResumeAnalysis) => {
+      if (settled) return
+      settled = true
+      clearFallbackTimer()
+      resolve(result)
+    }
+
+    const finalizeReject = (error: unknown) => {
+      if (settled) return
+      settled = true
+      clearFallbackTimer()
+      if (error instanceof Error) {
+        reject(error)
+      } else {
+        reject(new Error('Failed to analyze resume'))
+      }
+    }
+
+    const fallbackToStandardEndpoint = async () => {
+      if (settled) return
+      console.warn('[analyzeResumeWithProgress] Falling back to standard endpoint')
+      try {
+        const fallbackResponse = await fetch(`${API_BASE_URL}/analyze-resume`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY,
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!fallbackResponse.ok) {
+          const fallbackError = await fallbackResponse.text()
+          console.error('[analyzeResumeWithProgress] Fallback request failed', fallbackResponse.status, fallbackError)
+          finalizeReject(new Error('Failed to analyze resume'))
+          return
+        }
+
+        const fallbackData = await fallbackResponse.json()
+        finalizeResolve(fallbackData as ResumeAnalysis)
+      } catch (fallbackError) {
+        console.error('[analyzeResumeWithProgress] Fallback request error', fallbackError)
+        finalizeReject(fallbackError)
+      }
+    }
+
+    const scheduleFallback = (delay = 8000) => {
+      clearFallbackTimer()
+      fallbackTimer = setTimeout(() => {
+        if (settled) return
+        controller.abort()
+        void fallbackToStandardEndpoint()
+      }, delay)
+    }
+
+    scheduleFallback()
+
     // Use fetch with streaming for POST request
     fetch(`${API_BASE_URL}/analyze-resume-stream`, {
       method: 'POST',
@@ -94,81 +162,97 @@ export async function analyzeResumeWithProgress(
         'X-API-Key': API_KEY,
       },
       body: JSON.stringify(payload),
-    }).then(async (response) => {
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('SSE request failed:', response.status, errorText)
-        reject(new Error('Failed to analyze resume'))
-        return
-      }
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (settled) return
 
-      const reader = response.body?.getReader()
-      if (!reader) {
-        reject(new Error('No response body'))
-        return
-      }
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('SSE request failed:', response.status, errorText)
+          await fallbackToStandardEndpoint()
+          return
+        }
 
-      const decoder = new TextDecoder()
-      let buffer = ''
+        const reader = response.body?.getReader()
+        if (!reader) {
+          await fallbackToStandardEndpoint()
+          return
+        }
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+        const decoder = new TextDecoder()
+        let buffer = ''
 
-          buffer += decoder.decode(value, { stream: true })
+        try {
+          while (!settled) {
+            const { done, value } = await reader.read()
+            if (done) break
 
-          // Split by double newline (SSE message separator)
-          const messages = buffer.split('\n\n')
-          buffer = messages.pop() || ''
+            buffer += decoder.decode(value, { stream: true })
 
-          for (const message of messages) {
-            if (!message.trim()) continue
+            // Split by blank lines (handles \n\n and \r\n\r\n)
+            const messages = buffer.split(/\r?\n\r?\n/)
+            buffer = messages.pop() || ''
 
-            // Parse SSE message format: "event: xxx\ndata: {...}"
-            const lines = message.split('\n')
-            let eventType = ''
-            let dataStr = ''
+            for (const rawMessage of messages) {
+              const message = rawMessage.trim()
+              if (!message) continue
 
-            for (const line of lines) {
-              if (line.startsWith('event: ')) {
-                eventType = line.substring(7).trim()
-              } else if (line.startsWith('data: ')) {
-                dataStr = line.substring(6).trim()
-              }
-            }
+              scheduleFallback()
 
-            if (eventType && dataStr) {
-              console.log('SSE Message:', eventType, dataStr)
+              const lines = message.split(/\r?\n/)
+              let eventType = ''
+              let dataStr = ''
 
-              try {
-                const data = JSON.parse(dataStr)
-
-                if (eventType === 'progress') {
-                  onProgress(data as ProgressUpdate)
-                } else if (eventType === 'result') {
-                  console.log('Analysis complete, resolving with result')
-                  resolve(data as ResumeAnalysis)
-                  return
-                } else if (eventType === 'error') {
-                  console.error('SSE Error:', data)
-                  reject(new Error(data.message || 'Analysis failed'))
-                  return
+              for (const line of lines) {
+                if (line.startsWith('event:')) {
+                  eventType = line.substring(6).trim()
+                } else if (line.startsWith('data:')) {
+                  dataStr = line.substring(5).trim()
                 }
-              } catch (parseError) {
-                console.error('Failed to parse SSE data:', dataStr, parseError)
+              }
+
+              if (eventType && dataStr) {
+                console.log('SSE Message:', eventType, dataStr)
+
+                try {
+                  const data = JSON.parse(dataStr)
+
+                  if (eventType === 'progress') {
+                    onProgress(data as ProgressUpdate)
+                  } else if (eventType === 'result') {
+                    console.log('Analysis complete, resolving with result')
+                    finalizeResolve(data as ResumeAnalysis)
+                    return
+                  } else if (eventType === 'error') {
+                    console.error('SSE Error:', data)
+                    finalizeReject(new Error(data.message || 'Analysis failed'))
+                    return
+                  }
+                } catch (parseError) {
+                  console.error('Failed to parse SSE data:', dataStr, parseError)
+                }
               }
             }
           }
+
+          if (!settled) {
+            console.warn('SSE stream ended without result, using fallback')
+            await fallbackToStandardEndpoint()
+          }
+        } catch (error) {
+          console.error('SSE stream error:', error)
+          if (!settled) {
+            await fallbackToStandardEndpoint()
+          }
         }
-      } catch (error) {
-        console.error('SSE stream error:', error)
-        reject(error)
-      }
-    }).catch((error) => {
-      console.error('Fetch error:', error)
-      reject(error)
-    })
+      })
+      .catch(async (error) => {
+        console.error('Fetch error:', error)
+        if (!settled) {
+          await fallbackToStandardEndpoint()
+        }
+      })
   })
 }
 

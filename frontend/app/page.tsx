@@ -66,6 +66,12 @@ export default function Home() {
   const handleAnalyze = async () => {
     if (!selectedFile) return
 
+    console.log('[handleAnalyze] Starting analysis', {
+      fileName: selectedFile.name,
+      fileSize: selectedFile.size,
+      hasJobDescription: Boolean(jobDescription.trim()),
+    })
+
     setLoading(true)
     setError(null)
     setProgressUpdate(null)
@@ -79,6 +85,10 @@ export default function Home() {
           console.log('Progress update:', update)
         }
       )
+      console.log('[handleAnalyze] Analysis complete, updating UI', {
+        overallScore: result?.overall_score,
+        atsScore: result?.ats_score,
+      })
       setAnalysis(result)
       setShowUpload(false)
       setJobDescriptionDialogOpen(false)
@@ -86,6 +96,7 @@ export default function Home() {
       setError(err instanceof Error ? err.message : 'Failed to analyze resume')
       console.error('Analysis error:', err)
     } finally {
+      console.log('[handleAnalyze] Cleaning up after analysis')
       setLoading(false)
       setProgressUpdate(null)
     }
