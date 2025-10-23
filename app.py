@@ -20,8 +20,15 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Enable CORS
-CORS(app)
+# Enable CORS with explicit configuration
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "X-API-Key"],
+        "supports_credentials": True
+    }
+})
 
 # Create uploads directory if it doesn't exist
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)

@@ -61,12 +61,17 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
     try {
       console.log('Sending chat message:', userInput)
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '1234'
+
+      console.log('Using API URL:', apiUrl)
+
       // Fetch the full response (not streaming from backend)
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': '1234',
+          'X-API-Key': apiKey,
         },
         body: JSON.stringify({
           message: userInput,
@@ -78,7 +83,8 @@ export function ResumeChat({ analysis, sessionId }: ResumeChatProps) {
       console.log('Response status:', response.status)
 
       if (!response.ok) {
-        throw new Error('Failed to get response')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Server error: ${response.status}`)
       }
 
       const data = await response.json()
