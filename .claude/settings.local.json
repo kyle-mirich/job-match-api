@@ -10,7 +10,11 @@
       "Bash(npm install:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm dlx shadcn@latest add:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(git restore:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

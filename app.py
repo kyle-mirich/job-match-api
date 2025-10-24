@@ -20,8 +20,18 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Enable CORS
-CORS(app)
+# Enable CORS with specific origins
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://job-match-api.vercel.app"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "X-API-Key"],
+        "supports_credentials": True
+    }
+})
 
 # Create uploads directory if it doesn't exist
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
