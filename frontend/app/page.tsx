@@ -3,6 +3,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ResultsTabs } from '@/components/results-tabs'
 import { LoadingScreen } from '@/components/loading-screen'
+import { ApiWakeLoading } from '@/components/api-wake-loading'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { analyzeResumeWithProgress, ResumeAnalysis, ProgressUpdate } from '@/lib/api'
+import { analyzeResumeWithProgress, checkHealth, ResumeAnalysis, ProgressUpdate } from '@/lib/api'
 import {
   Sparkles,
   Github,
@@ -40,6 +41,7 @@ export default function Home() {
   const [showUpload, setShowUpload] = useState(false)
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null)
   const [jobDescriptionDialogOpen, setJobDescriptionDialogOpen] = useState(false)
+  const [isWakingApi, setIsWakingApi] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -115,9 +117,27 @@ export default function Home() {
     setShowUpload(true) // Go back to upload page, not landing page
   }
 
-  const handleGetStarted = () => {
-    setShowUpload(true)
-    setJobDescriptionDialogOpen(false)
+  const handleGetStarted = async () => {
+    setIsWakingApi(true)
+    setError(null)
+
+    try {
+      // Check if API is healthy
+      await checkHealth()
+      // API is ready, proceed to upload screen
+      setShowUpload(true)
+      setJobDescriptionDialogOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect to API server')
+      console.error('API health check error:', err)
+    } finally {
+      setIsWakingApi(false)
+    }
+  }
+
+  // API Wake Loading State
+  if (isWakingApi) {
+    return <ApiWakeLoading />
   }
 
   // Loading State
