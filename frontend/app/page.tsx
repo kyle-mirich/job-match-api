@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useRef, useState, useEffect, type ChangeEvent } from 'react'
 import { ResultsTabs } from '@/components/results-tabs'
 import { LoadingScreen } from '@/components/loading-screen'
 import { ApiWakeLoading } from '@/components/api-wake-loading'
@@ -42,7 +42,24 @@ export default function Home() {
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null)
   const [jobDescriptionDialogOpen, setJobDescriptionDialogOpen] = useState(false)
   const [isWakingApi, setIsWakingApi] = useState(false)
+  const [apiCheckedOnLoad, setApiCheckedOnLoad] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Check API health when page loads
+  useEffect(() => {
+    const checkApiOnLoad = async () => {
+      try {
+        await checkHealth()
+        console.log('API health check on page load: healthy')
+        setApiCheckedOnLoad(true)
+      } catch (err) {
+        console.log('API health check on page load: failed, will retry when user clicks button')
+        setApiCheckedOnLoad(false)
+      }
+    }
+
+    checkApiOnLoad()
+  }, [])
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -122,7 +139,7 @@ export default function Home() {
     setError(null)
 
     try {
-      // Check if API is healthy
+      // Check if API is healthy (backup check in case initial check failed)
       await checkHealth()
       // API is ready, proceed to upload screen
       setShowUpload(true)
@@ -352,20 +369,20 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-4 py-12 md:py-20">
+      <main className="container mx-auto px-3 sm:px-4 md:px-6 py-8 sm:py-12 md:py-16 lg:py-20 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           {/* Hero Content */}
-          <div className="text-center mb-16 md:mb-20">
+          <div className="text-center mb-12 sm:mb-16 md:mb-20 lg:mb-24">
             <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border bg-muted/50">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">Portfolio Project by Kyle Mirich</span>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-3 sm:mb-4 md:mb-6 leading-tight">
               AI-Powered Resume Analysis
               <br />
               <span className="text-primary">Built with Modern Tech</span>
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8 leading-relaxed px-2 sm:px-4">
               A full-stack application demonstrating AI integration, real-time processing, and modern web development.
               Upload a resume to see Google Gemini AI analyze it in real-time.
             </p>
@@ -392,7 +409,7 @@ export default function Home() {
           </div>
 
           {/* Tech Stack */}
-          <Card className="border mb-12">
+          <Card className="border mb-14 sm:mb-18 md:mb-24 lg:mb-28">
             <CardHeader>
               <CardTitle>Tech Stack</CardTitle>
               <CardDescription>Technologies used in this project</CardDescription>
